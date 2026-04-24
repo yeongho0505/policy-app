@@ -157,3 +157,38 @@ with st.sidebar.form("add_form"):
         
         conn.commit()
         st.success("저장 완료!")
+def recommend_policies(df, target, region, industry, budget):
+    df = df.copy()
+
+    scores = []
+
+    for _, row in df.iterrows():
+        score = 0
+        reasons = []
+
+        # 대상 매칭
+        if target in str(row["대상"]) or row["대상"] == "":
+            score += 3
+            reasons.append("대상 조건 일치")
+
+        # 지역 매칭
+        if region in str(row["지역"]) or row["지역"] == "":
+            score += 2
+            reasons.append("지역 조건 일치")
+
+        # 업종 매칭
+        if industry in str(row["업종"]) or row["업종"] == "":
+            score += 2
+            reasons.append("업종 조건 일치")
+
+        # 금액 조건
+        if row["최대금액"] >= budget:
+            score += 3
+            reasons.append("지원금 규모 적합")
+
+        scores.append((score, reasons))
+
+    df["score"] = [s[0] for s in scores]
+    df["reasons"] = [s[1] for s in scores]
+
+    return df.sort_values(by="score", ascending=False)
