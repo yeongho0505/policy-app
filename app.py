@@ -192,3 +192,5 @@ def recommend_policies(df, target, region, industry, budget):
     df["reasons"] = [s[1] for s in scores]
 
     return df.sort_values(by="score", ascending=False)
+df = load_data()
+st.write(df)
