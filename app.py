@@ -1,8 +1,6 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-import smtplib
-from email.mime.text import MIMEText
 
 # -------------------------------
 # DB 연결
@@ -13,7 +11,6 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # 테이블 생성
 # -------------------------------
 def create_table():
-    # 정책자금 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +28,6 @@ def create_table():
     )
     """)
 
-    # 상담신청 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS consult_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,37 +45,6 @@ def create_table():
     conn.commit()
 
 create_table()
-
-# -------------------------------
-# 이메일 알림 함수
-# -------------------------------
-def send_email_alert(name, phone, business, region, industry, amount, message):
-    sender_email = st.secrets["syh3208@gmail.com"]
-    sender_password = st.secrets["hfmt zoes djgq gftu"]
-    receiver_email = st.secrets["yeongho0425@naver.com"]
-
-    body = f"""
-새로운 정책자금 상담 신청이 들어왔습니다.
-
-이름: {name}
-연락처: {phone}
-사업자명: {business}
-지역: {region}
-업종: {industry}
-희망 자금: {amount:,}원
-
-문의 내용:
-{message}
-"""
-
-    msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = "정책자금 상담 신청"
-    msg["From"] = sender_email
-    msg["To"] = receiver_email
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
 
 # -------------------------------
 # 검색 함수
@@ -103,7 +68,7 @@ def search_data(region, target, industry, min_money):
     return pd.read_sql(query, conn, params=params)
 
 # -------------------------------
-# UI 시작
+# UI
 # -------------------------------
 st.set_page_config(page_title="정책자금 조회", layout="wide")
 st.title("📊 정책자금 조회 웹앱")
@@ -138,7 +103,7 @@ sort_option = st.sidebar.selectbox(
 search_btn = st.sidebar.button("검색")
 
 # -------------------------------
-# 검색 결과 표시
+# 검색 결과
 # -------------------------------
 if search_btn:
     df = search_data(region, target, industry, min_money)
@@ -197,15 +162,10 @@ with st.form("consult_form"):
         """, (name, phone, business, region_c, industry_c, amount, message))
 
         conn.commit()
-
-        try:
-            send_email_alert(name, phone, business, region_c, industry_c, amount, message)
-            st.success("✅ 상담 신청 완료! 이메일 알림도 전송되었습니다.")
-        except Exception as e:
-            st.warning(f"✅ 상담 신청은 저장되었습니다. 다만 이메일 전송은 실패했습니다: {e}")
+        st.success("✅ 상담 신청 완료!")
 
 # -------------------------------
-# 관리자 상담 신청 목록
+# 관리자 조회
 # -------------------------------
 st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
