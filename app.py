@@ -11,6 +11,8 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # 테이블 생성
 # -------------------------------
 def create_table():
+    
+    # 정책 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,29 +30,30 @@ def create_table():
     )
     """)
 
-create_table() conn.execute("""
-CREATE TABLE IF NOT EXISTS consult_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    phone TEXT,
-    business TEXT,
-    region TEXT,
-    industry TEXT,
-    amount INTEGER,
-    message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
-conn.commit()
+    # 상담 신청 테이블
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS consult_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT,
+        business TEXT,
+        region TEXT,
+        industry TEXT,
+        amount INTEGER,
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    conn.commit()
+
+create_table()
 
 # -------------------------------
-# 검색 함수 (안정 버전)
+# 검색 함수
 # -------------------------------
 def search_data(region, target, industry, min_money):
-    query = """
-    SELECT * FROM policy_funds
-    WHERE 최대금액 >= ?
-    """
+    query = "SELECT * FROM policy_funds WHERE 최대금액 >= ?"
     params = [min_money]
 
     if region != "전체":
@@ -68,13 +71,13 @@ def search_data(region, target, industry, min_money):
     return pd.read_sql(query, conn, params=params)
 
 # -------------------------------
-# UI 시작
+# UI
 # -------------------------------
 st.set_page_config(page_title="정책자금 조회", layout="wide")
 st.title("📊 정책자금 조회 웹앱")
 
 # -------------------------------
-# 사이드바 필터
+# 검색 필터
 # -------------------------------
 st.sidebar.header("🔍 검색 조건")
 
@@ -103,12 +106,11 @@ sort_option = st.sidebar.selectbox(
 search_btn = st.sidebar.button("검색")
 
 # -------------------------------
-# 데이터 표시
+# 검색 결과
 # -------------------------------
 if search_btn:
     df = search_data(region, target, industry, min_money)
 
-    # 정렬
     if sort_option == "금리 낮은순":
         df = df.sort_values(by="금리")
     elif sort_option == "지원금 높은순":
@@ -119,51 +121,56 @@ if search_btn:
     if len(df) > 0:
         for i, row in df.iterrows():
             with st.expander(f"📌 {row['name']}"):
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    st.write(f"기관: {row['기관']}")
-                    st.write(f"대상: {row['대상']}")
-                    st.write(f"업종: {row['업종']}")
-                    st.write(f"지역: {row['지역']}")
-
-                with col2:
-                    st.write(f"지원금: {row['최대금액']:,}원")
-                    st.write(f"금리: {row['금리']}%")
-                    st.write(f"형태: {row['지원형태']}")
-                    st.write(f"기간: {row['신청기간']}")
-
+                st.write(f"기관: {row['기관']}")
+                st.write(f"대상: {row['대상']}")
+                st.write(f"업종: {row['업종']}")
+                st.write(f"지역: {row['지역']}")
+                st.write(f"지원금: {row['최대금액']:,}원")
+                st.write(f"금리: {row['금리']}%")
+                st.write(f"형태: {row['지원형태']}")
+                st.write(f"기간: {row['신청기간']}")
                 st.write("조건:", row["조건"])
                 st.markdown(f"[👉 신청 바로가기]({row['링크']})")
     else:
         st.warning("조건에 맞는 정책이 없습니다.")
 
 # -------------------------------
-# 데이터 추가
+# 상담 신청
 # -------------------------------
-st.sidebar.subheader("➕ 정책 추가")
+st.markdown("---")
+st.subheader("📞 정책자금 상담 신청")
 
-with st.sidebar.form("add_form"):
-    name = st.text_input("정책명")
-    기관 = st.text_input("기관")
-    대상 = st.text_input("대상")
-    업종 = st.text_input("업종")
-    지역_입력 = st.text_input("지역")
-    금액 = st.number_input("최대금액", value=0)
-    금리 = st.number_input("금리", value=0.0)
-    형태 = st.text_input("지원형태")
-    조건 = st.text_area("조건")
-    기간 = st.text_input("신청기간")
-    링크 = st.text_input("링크")
+with st.form("consult_form"):
+    name = st.text_input("이름")
+    phone = st.text_input("연락처")
+    business = st.text_input("사업자명")
+    region_c = st.text_input("지역")
+    industry_c = st.text_input("업종")
+    amount = st.number_input("희망 자금", value=0)
+    message = st.text_area("문의 내용")
 
-    submitted = st.form_submit_button("저장")
+    submit = st.form_submit_button("상담 신청하기")
 
-    if submitted:
+    if submit:
         conn.execute("""
-        INSERT INTO policy_funds
-        (name, 기관, 대상, 업종, 지역, 최대금액, 금리, 지원형태, 조건, 신청기간, 링크)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (name, 기관, 대상, 업종, 지역_입력, 금액, 금리, 형태, 조건, 기간, 링크))
-        
+        INSERT INTO consult_requests
+        (name, phone, business, region, industry, amount, message)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (name, phone, business, region_c, industry_c, amount, message))
+
         conn.commit()
-        st.success("저장 완료!")
+        st.success("✅ 상담 신청 완료!")
+
+# -------------------------------
+# 관리자 페이지
+# -------------------------------
+st.markdown("---")
+st.subheader("🧑‍💼 관리자 상담 신청 목록")
+
+password = st.text_input("관리자 비밀번호", type="password")
+
+if password == "1234":
+    df = pd.read_sql("SELECT * FROM consult_requests ORDER BY created_at DESC", conn)
+    st.dataframe(df)
+elif password:
+    st.error("비밀번호 틀림")
