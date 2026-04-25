@@ -41,6 +41,7 @@ def is_valid_phone(phone):
 # 테이블 생성
 # -------------------------------
 def create_table():
+    # 정책 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,8 +59,11 @@ def create_table():
     )
     """)
 
+    # 🔥 상담 테이블 강제 초기화
+    conn.execute("DROP TABLE IF EXISTS consult_requests")
+
     conn.execute("""
-    CREATE TABLE IF NOT EXISTS consult_requests (
+    CREATE TABLE consult_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         phone TEXT,
@@ -73,7 +77,6 @@ def create_table():
     """)
 
     conn.commit()
-
 create_table()
 
 # -------------------------------
