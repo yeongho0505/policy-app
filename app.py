@@ -40,15 +40,25 @@ def load_data():
 # 검색 함수
 # -------------------------------
 def search_data(region, target, industry, min_money):
-    query = f"""
+    query = """
     SELECT * FROM policy_funds
-    WHERE 지역 LIKE '%{region}%'
-    AND 대상 LIKE '%{target}%'
-    AND 업종 LIKE '%{industry}%'
-    AND 최대금액 >= {min_money}
+    WHERE 최대금액 >= ?
     """
-    return pd.read_sql(query, conn)
+    params = [min_money]
 
+    if region != "전체":
+        query += " AND 지역 LIKE ?"
+        params.append(f"%{region}%")
+
+    if target != "전체":
+        query += " AND 대상 LIKE ?"
+        params.append(f"%{target}%")
+
+    if industry != "전체":
+        query += " AND 업종 LIKE ?"
+        params.append(f"%{industry}%")
+
+    return pd.read_sql(query, conn, params=params)
 # -------------------------------
 # UI 시작
 # -------------------------------
@@ -87,13 +97,8 @@ search_btn = st.sidebar.button("검색")
 # 데이터 표시
 # -------------------------------
 if search_btn:
-    search_region = "" if region == "전체" else region
-    search_target = "" if target == "전체" else target
-    search_industry = "" if industry == "전체" else industry
+    df = search_data(region, target, industry, min_money)
 
-    df = search_data(search_region, search_target, search_industry, min_money)
-
-    # 정렬
     if sort_option == "금리 낮은순":
         df = df.sort_values(by="금리")
     elif sort_option == "지원금 높은순":
@@ -104,21 +109,15 @@ if search_btn:
     if len(df) > 0:
         for i, row in df.iterrows():
             with st.expander(f"📌 {row['name']}"):
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    st.write(f"기관: {row['기관']}")
-                    st.write(f"대상: {row['대상']}")
-                    st.write(f"업종: {row['업종']}")
-                    st.write(f"지역: {row['지역']}")
-
-                with col2:
-                    st.write(f"지원금: {row['최대금액']:,}원")
-                    st.write(f"금리: {row['금리']}%")
-                    st.write(f"형태: {row['지원형태']}")
-                    st.write(f"기간: {row['신청기간']}")
-
-                st.write("조건:", row['조건'])
+                st.write(f"기관: {row['기관']}")
+                st.write(f"대상: {row['대상']}")
+                st.write(f"업종: {row['업종']}")
+                st.write(f"지역: {row['지역']}")
+                st.write(f"지원금: {row['최대금액']:,}원")
+                st.write(f"금리: {row['금리']}%")
+                st.write(f"형태: {row['지원형태']}")
+                st.write(f"기간: {row['신청기간']}")
+                st.write("조건:", row["조건"])
                 st.markdown(f"[👉 신청 바로가기]({row['링크']})")
     else:
         st.warning("조건에 맞는 정책이 없습니다.")
