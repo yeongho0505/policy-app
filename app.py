@@ -28,8 +28,7 @@ def create_table():
     )
     """)
 
-create_table()
-conn.execute("""
+create_table() conn.execute("""
 CREATE TABLE IF NOT EXISTS consult_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -43,6 +42,7 @@ CREATE TABLE IF NOT EXISTS consult_requests (
 )
 """)
 conn.commit()
+
 # -------------------------------
 # 검색 함수 (안정 버전)
 # -------------------------------
