@@ -219,7 +219,7 @@ st.subheader("🧑‍💼 관리자 상담 신청 목록")
 
 admin_password = st.text_input("관리자 비밀번호", type="password")
 
-if admin_password:
+if admin_password:"@n10090425"
     if check_admin_password(admin_password):
         st.success("관리자 인증 성공")
 
