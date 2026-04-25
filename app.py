@@ -81,8 +81,12 @@ sort_option = st.sidebar.selectbox(
     "정렬 기준",
     ["없음", "금리 낮은순", "지원금 높은순"]
 )
+if search_btn:
+    search_region = "" if region == "전체" else region
+    search_target = "" if target == "전체" else target
+    search_industry = "" if industry == "전체" else industry
 
-search_btn = st.sidebar.button("검색")
+    df = search_data(search_region, search_target, search_industry, min_money)
 
 # -------------------------------
 # 데이터 표시
