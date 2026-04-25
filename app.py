@@ -61,7 +61,10 @@ st.title("📊 정책자금 조회 웹앱")
 # -------------------------------
 st.sidebar.header("🔍 검색 조건")
 
-region = st.sidebar.selectbox("지역", ["", "서울", "경기", "부산"])
+region = st.sidebar.selectbox(
+    "지역",
+    ["전체", "서울", "경기", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"]
+)
 target = st.sidebar.selectbox("대상", ["", "청년", "소상공인", "중소기업"])
 industry = st.sidebar.selectbox("업종", ["", "제조", "서비스", "IT"])
 
