@@ -33,9 +33,9 @@ def clean_text(value):
         return ""
     return str(value).strip()
 
-def is_valid_phone(콜):
+def is_valid_phone(phone):
     phone = phone.replace("-", "").replace(" ", "")
-    return phone.isdigit() and len(콜) >= 10
+    return phone.isdigit() and len(phone) >= 10
 
 # -------------------------------
 # 테이블 생성
