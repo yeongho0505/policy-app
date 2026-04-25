@@ -13,6 +13,7 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # 테이블 생성
 # -------------------------------
 def create_table():
+    # 정책자금 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,6 +31,7 @@ def create_table():
     )
     """)
 
+    # 상담신청 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS consult_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,8 +54,8 @@ create_table()
 # 이메일 알림 함수
 # -------------------------------
 def send_email_alert(name, phone, business, region, industry, amount, message):
-    sender_email = st.secrets["yeongho0425@naver.com"]
-    sender_password = st.secrets["1234"]
+    sender_email = st.secrets["syh3208@gmail.com"]
+    sender_password = st.secrets["hfmt zoes djgq gftu"]
     receiver_email = st.secrets["yeongho0425@naver.com"]
 
     body = f"""
@@ -71,7 +73,7 @@ def send_email_alert(name, phone, business, region, industry, amount, message):
 """
 
     msg = MIMEText(body, "plain", "utf-8")
-    msg["Subject"] = "📢 정책자금 상담 신청"
+    msg["Subject"] = "정책자금 상담 신청"
     msg["From"] = sender_email
     msg["To"] = receiver_email
 
@@ -101,13 +103,13 @@ def search_data(region, target, industry, min_money):
     return pd.read_sql(query, conn, params=params)
 
 # -------------------------------
-# UI
+# UI 시작
 # -------------------------------
 st.set_page_config(page_title="정책자금 조회", layout="wide")
 st.title("📊 정책자금 조회 웹앱")
 
 # -------------------------------
-# 검색 필터
+# 사이드바 검색 조건
 # -------------------------------
 st.sidebar.header("🔍 검색 조건")
 
@@ -136,7 +138,7 @@ sort_option = st.sidebar.selectbox(
 search_btn = st.sidebar.button("검색")
 
 # -------------------------------
-# 검색 결과
+# 검색 결과 표시
 # -------------------------------
 if search_btn:
     df = search_data(region, target, industry, min_money)
@@ -151,14 +153,20 @@ if search_btn:
     if len(df) > 0:
         for _, row in df.iterrows():
             with st.expander(f"📌 {row['name']}"):
-                st.write(f"기관: {row['기관']}")
-                st.write(f"대상: {row['대상']}")
-                st.write(f"업종: {row['업종']}")
-                st.write(f"지역: {row['지역']}")
-                st.write(f"지원금: {row['최대금액']:,}원")
-                st.write(f"금리: {row['금리']}%")
-                st.write(f"형태: {row['지원형태']}")
-                st.write(f"기간: {row['신청기간']}")
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write(f"기관: {row['기관']}")
+                    st.write(f"대상: {row['대상']}")
+                    st.write(f"업종: {row['업종']}")
+                    st.write(f"지역: {row['지역']}")
+
+                with col2:
+                    st.write(f"지원금: {row['최대금액']:,}원")
+                    st.write(f"금리: {row['금리']}%")
+                    st.write(f"형태: {row['지원형태']}")
+                    st.write(f"기간: {row['신청기간']}")
+
                 st.write("조건:", row["조건"])
                 st.markdown(f"[👉 신청 바로가기]({row['링크']})")
     else:
@@ -176,7 +184,7 @@ with st.form("consult_form"):
     business = st.text_input("사업자명")
     region_c = st.text_input("지역")
     industry_c = st.text_input("업종")
-    amount = st.number_input("희망 자금", value=0)
+    amount = st.number_input("희망 자금", value=0, step=1000000)
     message = st.text_area("문의 내용")
 
     submit = st.form_submit_button("상담 신청하기")
@@ -190,15 +198,14 @@ with st.form("consult_form"):
 
         conn.commit()
 
-        # 이메일 알림
         try:
             send_email_alert(name, phone, business, region_c, industry_c, amount, message)
-            st.success("✅ 상담 신청 완료 + 이메일 알림 전송됨!")
+            st.success("✅ 상담 신청 완료! 이메일 알림도 전송되었습니다.")
         except Exception as e:
-            st.warning(f"상담 저장은 됨, 이메일 실패: {e}")
+            st.warning(f"✅ 상담 신청은 저장되었습니다. 다만 이메일 전송은 실패했습니다: {e}")
 
 # -------------------------------
-# 관리자 조회
+# 관리자 상담 신청 목록
 # -------------------------------
 st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
@@ -206,7 +213,10 @@ st.subheader("🧑‍💼 관리자 상담 신청 목록")
 password = st.text_input("관리자 비밀번호", type="password")
 
 if password == "1234":
-    df = pd.read_sql("SELECT * FROM consult_requests ORDER BY created_at DESC", conn)
-    st.dataframe(df)
+    consult_df = pd.read_sql(
+        "SELECT * FROM consult_requests ORDER BY created_at DESC",
+        conn
+    )
+    st.dataframe(consult_df)
 elif password:
-    st.error("비밀번호 틀림")
+    st.error("비밀번호가 틀렸습니다.")
