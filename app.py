@@ -233,14 +233,18 @@ if password:
             if len(df) > 0:
                 st.dataframe(df)
 
-                csv = df.to_csv(index=False).encode("utf-8-sig")
+             from io import BytesIO
 
-                st.download_button(
-                    label="📥 상담 신청 목록 다운로드",
-                    data=csv,
-                    file_name="consult_requests.csv",
-                    mime="text/csv"
-                )
+output = BytesIO()
+df.to_excel(output, index=False, engine='openpyxl')
+excel_data = output.getvalue()
+
+st.download_button(
+    label="📥 엑셀 다운로드",
+    data=excel_data,
+    file_name="consult_requests.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)   
             else:
                 st.info("📭 상담 신청 데이터가 없습니다.")
 
