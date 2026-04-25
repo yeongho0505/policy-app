@@ -1,6 +1,13 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import hashlib
+import re
+
+# -------------------------------
+# 페이지 설정
+# -------------------------------
+st.set_page_config(page_title="정책자금 조회", layout="wide")
 
 # -------------------------------
 # DB 연결
@@ -8,10 +15,32 @@ import pandas as pd
 conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 
 # -------------------------------
-# 테이블 생성 (상담 오류 해결 포함)
+# 보안 함수
+# -------------------------------
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def check_admin_password(input_password):
+    try:
+        admin_password = st.secrets["ADMIN_PASSWORD"]
+    except Exception:
+        admin_password = "1234"
+
+    return hash_password(input_password) == hash_password(admin_password)
+
+def clean_text(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+def is_valid_phone(콜):
+    phone = phone.replace("-", "").replace(" ", "")
+    return phone.isdigit() and len(콜) >= 10
+
+# -------------------------------
+# 테이블 생성
 # -------------------------------
 def create_table():
-    # 정책 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,9 +57,6 @@ def create_table():
         링크 TEXT
     )
     """)
-
-    # 🔥 상담 테이블 초기화 (오류 방지 핵심)
-    conn.execute("DROP TABLE IF EXISTS consult_requests")
 
     conn.execute("""
     CREATE TABLE IF NOT EXISTS consult_requests (
@@ -72,13 +98,12 @@ def search_data(region, target, industry, min_money):
     return pd.read_sql(query, conn, params=params)
 
 # -------------------------------
-# UI
+# UI 시작
 # -------------------------------
-st.set_page_config(page_title="정책자금 조회", layout="wide")
 st.title("📊 정책자금 조회 웹앱")
 
 # -------------------------------
-# 검색 필터
+# 사이드바 검색 조건
 # -------------------------------
 st.sidebar.header("🔍 검색 조건")
 
@@ -159,28 +184,51 @@ with st.form("consult_form"):
     submit = st.form_submit_button("상담 신청하기")
 
     if submit:
-        conn.execute("""
-        INSERT INTO consult_requests
-        (name, phone, business, region, industry, amount, message)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (name, phone, business, region_c, industry_c, amount, message))
+        name = clean_text(name)
+        phone = clean_text(콜)
+        business = clean_text(business)
+        region_c = clean_text(region_c)
+        industry_c = clean_text(industry_c)
+        message = clean_text(message)
 
-        conn.commit()
-        st.success("✅ 상담 신청 완료!")
+        if not name:
+            st.warning("이름을 입력해주세요.")
+        elif not is_valid_phone(콜):
+            st.warning("연락처를 정확히 입력해주세요.")
+        elif not business:
+            st.warning("사업자명을 입력해주세요.")
+        elif amount <= 0:
+            st.warning("희망 자금을 입력해주세요.")
+        else:
+            conn.execute("""
+            INSERT INTO consult_requests
+            (name, phone, business, region, industry, amount, message)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (name, phone, business, region_c, industry_c, amount, message))
+
+            conn.commit()
+            st.success("✅ 상담 신청 완료!")
 
 # -------------------------------
-# 관리자 조회
+# 관리자 페이지
 # -------------------------------
 st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
 
-password = st.text_input("관리자 비밀번호", type="password")
+admin_password = st.text_input("#n10090425", type="password")
 
-if password == "1234":
-    consult_df = pd.read_sql(
-        "SELECT * FROM consult_requests ORDER BY created_at DESC",
-        conn
-    )
-    st.dataframe(consult_df)
-elif password:
-    st.error("비밀번호가 틀렸습니다.")
+if admin_password:
+    if check_admin_password(admin_password):
+        consult_df = pd.read_sql(
+            "SELECT * FROM consult_requests ORDER BY created_at DESC",
+            conn
+        )
+
+        st.success("관리자 인증 성공")
+
+        if len(consult_df) > 0:
+            st.dataframe(consult_df)
+        else:
+            st.info("아직 상담 신청 내역이 없습니다.")
+    else:
+        st.error("비밀번호가 틀렸습니다.")
