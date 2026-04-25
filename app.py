@@ -12,6 +12,20 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # -------------------------------
 def create_table():
     conn.execute("""
+CREATE TABLE IF NOT EXISTS consult_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    phone TEXT,
+    business TEXT,
+    region TEXT,
+    industry TEXT,
+    amount INTEGER,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+""")
+conn.commit()
+    conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -29,20 +43,6 @@ def create_table():
     """)
 
 create_table()
-conn.execute("""
-CREATE TABLE IF NOT EXISTS consult_requests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    phone TEXT,
-    business TEXT,
-    region TEXT,
-    industry TEXT,
-    amount INTEGER,
-    message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
-conn.commit()
 # -------------------------------
 # 검색 함수 (안정 버전)
 # -------------------------------
