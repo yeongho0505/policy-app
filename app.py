@@ -11,6 +11,9 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # 테이블 생성
 # -------------------------------
 def create_table():
+    df_check = load_data()
+st.write("DB 데이터 개수:", len(df_check))
+st.dataframe(df_check.head())
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
