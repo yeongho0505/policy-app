@@ -8,9 +8,10 @@ import pandas as pd
 conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 
 # -------------------------------
-# 테이블 생성
+# 테이블 생성 (상담 오류 해결 포함)
 # -------------------------------
 def create_table():
+    # 정책 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +28,9 @@ def create_table():
         링크 TEXT
     )
     """)
+
+    # 🔥 상담 테이블 초기화 (오류 방지 핵심)
+    conn.execute("DROP TABLE IF EXISTS consult_requests")
 
     conn.execute("""
     CREATE TABLE IF NOT EXISTS consult_requests (
@@ -74,7 +78,7 @@ st.set_page_config(page_title="정책자금 조회", layout="wide")
 st.title("📊 정책자금 조회 웹앱")
 
 # -------------------------------
-# 사이드바 검색 조건
+# 검색 필터
 # -------------------------------
 st.sidebar.header("🔍 검색 조건")
 
