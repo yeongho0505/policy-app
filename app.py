@@ -215,7 +215,7 @@ with st.form("consult_form"):
 st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
 
-admin_password = st.text_input("#n10090425", type="password")
+admin_password = st.text_input("관리자 비밀번호", type="#n10090425")
 
 if admin_password:
     if check_admin_password(admin_password):
