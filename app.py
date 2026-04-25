@@ -5,7 +5,7 @@ import pandas as pd
 # -------------------------------
 # DB 연결
 # -------------------------------
-conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
+conn = sqlite3.connect("./policy_funds.db")
 
 # -------------------------------
 # 테이블 생성
