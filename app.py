@@ -81,7 +81,12 @@ search_btn = st.sidebar.button("검색")
 # 데이터 표시
 # -------------------------------
 if search_btn:
-    df = search_data(region, target, industry, min_money)
+  if search_btn:
+    search_region = "" if region == "전체" else region
+    search_target = "" if target == "전체" else target
+    search_industry = "" if industry == "전체" else industry
+
+    df = search_data(search_region, search_target, search_industry, min_money)  
 
     # 정렬
     if sort_option == "금리 낮은순":
