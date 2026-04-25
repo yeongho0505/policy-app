@@ -81,6 +81,12 @@ sort_option = st.sidebar.selectbox(
     "정렬 기준",
     ["없음", "금리 낮은순", "지원금 높은순"]
 )
+
+search_btn = st.sidebar.button("검색")
+
+# -------------------------------
+# 데이터 표시
+# -------------------------------
 if search_btn:
     search_region = "" if region == "전체" else region
     search_target = "" if target == "전체" else target
@@ -88,8 +94,17 @@ if search_btn:
 
     df = search_data(search_region, search_target, search_industry, min_money)
 
-# -------------------------------
-# 데이터 표시
+    if sort_option == "금리 낮은순":
+        df = df.sort_values(by="금리")
+    elif sort_option == "지원금 높은순":
+        df = df.sort_values(by="최대금액", ascending=False)
+
+    st.subheader(f"🔎 검색 결과 ({len(df)}건)")
+
+    if len(df) > 0:
+        st.dataframe(df)
+    else:
+        st.warning("조건에 맞는 정책이 없습니다.")
 # -------------------------------
 if search_btn:
   if search_btn:
