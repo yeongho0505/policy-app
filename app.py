@@ -106,11 +106,6 @@ if search_btn:
     else:
         st.warning("조건에 맞는 정책이 없습니다.")
 # -------------------------------
-if search_btn:
-  if search_btn:
-    search_region = "" if region == "전체" else region
-    search_target = "" if target == "전체" else target
-    search_industry = "" if industry == "전체" else industry
 
     df = search_data(search_region, search_target, search_industry, min_money)  
 
