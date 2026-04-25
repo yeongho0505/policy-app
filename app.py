@@ -207,7 +207,10 @@ with st.form("consult_form"):
         ))
         conn.commit()
         st.success("상담 신청이 저장되었습니다.")
-      st.markdown("---")
+     # -------------------------------
+# 관리자 페이지
+# -------------------------------
+st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
 
 password = st.text_input("관리자 비밀번호", type="password")
@@ -219,21 +222,30 @@ if password:
         admin_pw = "1234"
 
     if password == admin_pw:
-        df = pd.read_sql(
-            "SELECT * FROM consult_requests ORDER BY created_at DESC",
-            conn
-        )
-
         st.success("관리자 인증 성공")
-        st.dataframe(df)
 
-        csv = df.to_csv(index=False).encode("utf-8-sig")
+        try:
+            df = pd.read_sql(
+                "SELECT * FROM consult_requests ORDER BY created_at DESC",
+                conn
+            )
 
-        st.download_button(
-            label="📥 상담 신청 목록 다운로드",
-            data=csv,
-            file_name="consult_requests.csv",
-            mime="text/csv"
-        )
+            if len(df) > 0:
+                st.dataframe(df)
+
+                csv = df.to_csv(index=False).encode("utf-8-sig")
+
+                st.download_button(
+                    label="📥 상담 신청 목록 다운로드",
+                    data=csv,
+                    file_name="consult_requests.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("📭 상담 신청 데이터가 없습니다.")
+
+        except Exception as e:
+            st.error(f"DB 오류: {e}")
+
     else:
         st.error("비밀번호 틀림")
