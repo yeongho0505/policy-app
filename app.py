@@ -1,6 +1,8 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
 
 # -------------------------------
 # DB 연결
@@ -11,8 +13,6 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # 테이블 생성
 # -------------------------------
 def create_table():
-    
-    # 정책 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +30,6 @@ def create_table():
     )
     """)
 
-    # 상담 신청 테이블
     conn.execute("""
     CREATE TABLE IF NOT EXISTS consult_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +47,37 @@ def create_table():
     conn.commit()
 
 create_table()
+
+# -------------------------------
+# 이메일 알림 함수
+# -------------------------------
+def send_email_alert(name, phone, business, region, industry, amount, message):
+    sender_email = st.secrets["yeongho0425@naver.com"]
+    sender_password = st.secrets["1234"]
+    receiver_email = st.secrets["yeongho0425@naver.com"]
+
+    body = f"""
+새로운 정책자금 상담 신청이 들어왔습니다.
+
+이름: {name}
+연락처: {phone}
+사업자명: {business}
+지역: {region}
+업종: {industry}
+희망 자금: {amount:,}원
+
+문의 내용:
+{message}
+"""
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = "📢 정책자금 상담 신청"
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
 
 # -------------------------------
 # 검색 함수
@@ -119,7 +149,7 @@ if search_btn:
     st.subheader(f"🔎 검색 결과 ({len(df)}건)")
 
     if len(df) > 0:
-        for i, row in df.iterrows():
+        for _, row in df.iterrows():
             with st.expander(f"📌 {row['name']}"):
                 st.write(f"기관: {row['기관']}")
                 st.write(f"대상: {row['대상']}")
@@ -159,10 +189,16 @@ with st.form("consult_form"):
         """, (name, phone, business, region_c, industry_c, amount, message))
 
         conn.commit()
-        st.success("✅ 상담 신청 완료!")
+
+        # 이메일 알림
+        try:
+            send_email_alert(name, phone, business, region_c, industry_c, amount, message)
+            st.success("✅ 상담 신청 완료 + 이메일 알림 전송됨!")
+        except Exception as e:
+            st.warning(f"상담 저장은 됨, 이메일 실패: {e}")
 
 # -------------------------------
-# 관리자 페이지
+# 관리자 조회
 # -------------------------------
 st.markdown("---")
 st.subheader("🧑‍💼 관리자 상담 신청 목록")
