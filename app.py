@@ -123,7 +123,7 @@ if search_btn:
         st.warning("조건에 맞는 정책이 없습니다.")
 # -------------------------------
 
-    df = search_data(search_region, search_target, search_industry, min_money)  
+    df = search_data(region, target, industry, min_money)  
 
     # 정렬
     if sort_option == "금리 낮은순":
