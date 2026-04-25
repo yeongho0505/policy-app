@@ -65,9 +65,15 @@ region = st.sidebar.selectbox(
     "지역",
     ["전체", "서울", "경기", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"]
 )
-target = st.sidebar.selectbox("대상", ["", "청년", "소상공인", "중소기업"])
-industry = st.sidebar.selectbox("업종", ["", "제조", "서비스", "IT"])
+target = st.sidebar.selectbox(
+    "대상",
+    ["전체", "청년", "소상공인", "중소기업"]
+)
 
+industry = st.sidebar.selectbox(
+    "업종",
+    ["전체", "제조", "서비스", "IT", "유통"]
+)
 min_money = st.sidebar.slider("최소 지원금", 0, 100000000, 0)
 
 sort_option = st.sidebar.selectbox(
