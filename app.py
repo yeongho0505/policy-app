@@ -5,8 +5,7 @@ import pandas as pd
 # -------------------------------
 # DB 연결
 # -------------------------------
-conn = sqlite3.connect("policy_funds.db")
-
+conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 # -------------------------------
 # 테이블 생성
 # -------------------------------
@@ -94,6 +93,7 @@ if search_btn:
 
     df = search_data(search_region, search_target, search_industry, min_money)
 
+    # 정렬
     if sort_option == "금리 낮은순":
         df = df.sort_values(by="금리")
     elif sort_option == "지원금 높은순":
@@ -102,7 +102,24 @@ if search_btn:
     st.subheader(f"🔎 검색 결과 ({len(df)}건)")
 
     if len(df) > 0:
-        st.dataframe(df)
+        for i, row in df.iterrows():
+            with st.expander(f"📌 {row['name']}"):
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write(f"기관: {row['기관']}")
+                    st.write(f"대상: {row['대상']}")
+                    st.write(f"업종: {row['업종']}")
+                    st.write(f"지역: {row['지역']}")
+
+                with col2:
+                    st.write(f"지원금: {row['최대금액']:,}원")
+                    st.write(f"금리: {row['금리']}%")
+                    st.write(f"형태: {row['지원형태']}")
+                    st.write(f"기간: {row['신청기간']}")
+
+                st.write("조건:", row['조건'])
+                st.markdown(f"[👉 신청 바로가기]({row['링크']})")
     else:
         st.warning("조건에 맞는 정책이 없습니다.")
 # -------------------------------
