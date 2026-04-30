@@ -44,6 +44,22 @@ def is_valid_phone(콜):
 # 테이블 생성
 # -------------------------------
 def create_table():
+    def add_missing_columns():
+    existing_columns = pd.read_sql("PRAGMA table_info(consult_requests)", conn)["name"].tolist()
+
+    required_columns = {
+        "business": "TEXT",
+        "region": "TEXT",
+        "industry": "TEXT",
+        "amount": "INTEGER",
+        "message": "TEXT"
+    }
+
+    for column, column_type in required_columns.items():
+        if column not in existing_columns:
+            conn.execute(f"ALTER TABLE consult_requests ADD COLUMN {column} {column_type}")
+
+    conn.commit()
     conn.execute("""
     CREATE TABLE IF NOT EXISTS policy_funds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
