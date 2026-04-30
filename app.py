@@ -192,7 +192,7 @@ with st.form("consult_form"):
 
     if submit:
         name = clean_text(name)
-        phone = clean_text(콜)
+        phone = clean_text(phone)
         business = clean_text(business)
         region_c = clean_text(region_c)
         industry_c = clean_text(industry_c)
@@ -200,7 +200,7 @@ with st.form("consult_form"):
 
         if not name:
             st.warning("이름을 입력해주세요.")
-        elif not is_valid_phone(콜):
+        elif not is_valid_phone(phone):
             st.warning("연락처를 정확히 입력해주세요.")
         elif not business:
             st.warning("사업자명을 입력해주세요.")
