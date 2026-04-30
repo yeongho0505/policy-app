@@ -1,208 +1,256 @@
 import streamlit as st
+import sqlite3
 import pandas as pd
+import hashlib
 from io import BytesIO
 import re
 
-st.set_page_config(
-    page_title="정책자금 DB 관리 시스템",
-    page_icon="📊",
-    layout="wide"
-)
+# -------------------------------
+# 페이지 설정
+# -------------------------------
+st.set_page_config(page_title="정책자금 조회", layout="wide")
 
 # -------------------------------
-# 기본 함수
+# DB 연결
 # -------------------------------
+conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
+
+# -------------------------------
+# 보안 함수
+# -------------------------------
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def check_admin_password(input_password):
+    try:
+        admin_password = st.secrets["ADMIN_PASSWORD"]
+    except Exception:
+        admin_password = "1234"  # 테스트용 기본 비밀번호
+
+    return hash_password(input_password) == hash_password(admin_password)
 
 def clean_text(value):
-    """빈값, 숫자, NaN 등을 안전하게 문자열로 정리"""
-    if pd.isna(value):
+    if value is None:
         return ""
     return str(value).strip()
 
-
-def clean_phone(콜):
-    """전화번호에서 숫자만 추출"""
+def is_valid_phone(콜):
     phone = clean_text(콜)
     phone = re.sub(r"[^0-9]", "", phone)
-    return phone
 
-
-def is_valid_phone(콜):
-    """휴대폰 번호 유효성 검사"""
-    phone = clean_phone(콜)
-
-    if not phone:
-        return False
-
-    # 010, 011 등 휴대폰 번호 기준
-    if len(콜) not in [10, 11]:
-        return False
-
-    if not phone.startswith(("010", "011", "016", "017", "018", "019")):
-        return False
-
-    return True
-
-
-def to_excel(df):
-    """데이터프레임을 엑셀 파일로 변환"""
-    output = BytesIO()
-
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="정책자금DB")
-
-    return output.getvalue()
-
+    return phone.isdigit() and len(콜) >= 10
 
 # -------------------------------
-# 화면 제목
+# 테이블 생성
 # -------------------------------
+def create_table():
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS policy_funds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        기관 TEXT,
+        대상 TEXT,
+        업종 TEXT,
+        지역 TEXT,
+        최대금액 INTEGER,
+        금리 REAL,
+        지원형태 TEXT,
+        조건 TEXT,
+        신청기간 TEXT,
+        링크 TEXT
+    )
+    """)
 
-st.title("📊 정책자금 DB 관리 시스템")
-st.write("엑셀 파일을 업로드하면 전화번호를 정리하고 유효한 고객 DB만 추출합니다.")
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS consult_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        phone TEXT,
+        business TEXT,
+        region TEXT,
+        industry TEXT,
+        amount INTEGER,
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
-st.markdown("---")
+    conn.commit()
+
+create_table()
 
 # -------------------------------
-# 파일 업로드
+# 검색 함수
 # -------------------------------
+def search_data(region, target, industry, min_money):
+    query = "SELECT * FROM policy_funds WHERE 최대금액 >= ?"
+    params = [min_money]
 
-uploaded_file = st.file_uploader(
-    "엑셀 파일을 업로드하세요",
-    type=["xlsx", "xls", "csv"]
+    if region != "전체":
+        query += " AND 지역 LIKE ?"
+        params.append(f"%{region}%")
+
+    if target != "전체":
+        query += " AND 대상 LIKE ?"
+        params.append(f"%{target}%")
+
+    if industry != "전체":
+        query += " AND 업종 LIKE ?"
+        params.append(f"%{industry}%")
+
+    return pd.read_sql(query, conn, params=params)
+
+# -------------------------------
+# 메인 화면
+# -------------------------------
+st.title("📊 정책자금 조회 웹앱")
+
+# -------------------------------
+# 검색 조건
+# -------------------------------
+st.sidebar.header("🔍 검색 조건")
+
+region = st.sidebar.selectbox(
+    "지역",
+    ["전체", "서울", "경기", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"]
 )
 
-if uploaded_file is not None:
+target = st.sidebar.selectbox(
+    "대상",
+    ["전체", "청년", "소상공인", "중소기업"]
+)
 
-    try:
-        if uploaded_file.name.endswith(".csv"):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
+industry = st.sidebar.selectbox(
+    "업종",
+    ["전체", "제조", "서비스", "IT", "유통"]
+)
 
-        st.success("파일 업로드 성공")
+min_money = st.sidebar.slider("최소 지원금", 0, 100000000, 0)
 
-        st.subheader("원본 데이터 미리보기")
-        st.dataframe(df.head())
+sort_option = st.sidebar.selectbox(
+    "정렬 기준",
+    ["없음", "금리 낮은순", "지원금 높은순"]
+)
 
-        st.markdown("---")
+search_btn = st.sidebar.button("검색")
 
-        # -------------------------------
-        # 컬럼 선택
-        # -------------------------------
+# -------------------------------
+# 검색 결과
+# -------------------------------
+if search_btn:
+    df = search_data(region, target, industry, min_money)
 
-        st.subheader("컬럼 선택")
+    if sort_option == "금리 낮은순" and len(df) > 0:
+        df = df.sort_values(by="금리")
+    elif sort_option == "지원금 높은순" and len(df) > 0:
+        df = df.sort_values(by="최대금액", ascending=False)
 
-        columns = df.columns.tolist()
+    st.subheader(f"🔎 검색 결과 ({len(df)}건)")
 
-        name_col = st.selectbox(
-            "이름 컬럼을 선택하세요",
-            columns
-        )
+    if len(df) > 0:
+        for _, row in df.iterrows():
+            with st.expander(f"📌 {row['name']}"):
+                col1, col2 = st.columns(2)
 
-        phone_col = st.selectbox(
-            "전화번호 컬럼을 선택하세요",
-            columns
-        )
+                with col1:
+                    st.write(f"기관: {row['기관']}")
+                    st.write(f"대상: {row['대상']}")
+                    st.write(f"업종: {row['업종']}")
+                    st.write(f"지역: {row['지역']}")
 
-        memo_col = st.selectbox(
-            "메모/업종/비고 컬럼을 선택하세요",
-            ["없음"] + columns
-        )
+                with col2:
+                    st.write(f"지원금: {int(row['최대금액']):,}원")
+                    st.write(f"금리: {row['금리']}%")
+                    st.write(f"형태: {row['지원형태']}")
+                    st.write(f"기간: {row['신청기간']}")
 
-        st.markdown("---")
+                st.write("조건:", row["조건"])
 
-        # -------------------------------
-        # DB 정리 실행
-        # -------------------------------
-
-        if st.button("DB 정리하기"):
-
-            cleaned_rows = []
-            invalid_rows = []
-
-            for _, row in df.iterrows():
-
-                name = clean_text(row[name_col])
-                phone = clean_phone(row[phone_col])
-
-                if memo_col != "없음":
-                    memo = clean_text(row[memo_col])
+                if clean_text(row["링크"]):
+                    st.markdown(f"[👉 신청 바로가기]({row['링크']})")
                 else:
-                    memo = ""
+                    st.write("신청 링크 없음")
+    else:
+        st.warning("조건에 맞는 정책이 없습니다.")
 
-                # 이름 없으면 제외
-                if not name:
-                    invalid_rows.append({
-                        "이름": name,
-                        "전화번호": phone,
-                        "메모": memo,
-                        "제외사유": "이름 없음"
-                    })
-                    continue
+# -------------------------------
+# 상담 신청
+# -------------------------------
+st.markdown("---")
+st.subheader("📞 정책자금 상담 신청")
 
-                # 전화번호 유효성 검사
-                if not is_valid_phone(콜):
-                    invalid_rows.append({
-                        "이름": name,
-                        "전화번호": phone,
-                        "메모": memo,
-                        "제외사유": "전화번호 오류"
-                    })
-                    continue
+with st.form("consult_form"):
+    name = st.text_input("이름")
+    phone = st.text_input("연락처")
+    business = st.text_input("사업자명")
+    region_c = st.text_input("지역")
+    industry_c = st.text_input("업종")
+    amount = st.number_input("희망 자금", value=0, step=1000000)
+    message = st.text_area("문의 내용")
 
-                cleaned_rows.append({
-                    "이름": name,
-                    "전화번호": phone,
-                    "메모": memo
-                })
+    submit = st.form_submit_button("상담 신청하기")
 
-            cleaned_df = pd.DataFrame(cleaned_rows)
-            invalid_df = pd.DataFrame(invalid_rows)
+    if submit:
+        name = clean_text(name)
+        phone = clean_text(콜)
+        business = clean_text(business)
+        region_c = clean_text(region_c)
+        industry_c = clean_text(industry_c)
+        message = clean_text(message)
 
-            # -------------------------------
-            # 결과 출력
-            # -------------------------------
+        if not name:
+            st.warning("이름을 입력해주세요.")
+        elif not is_valid_phone(콜):
+            st.warning("연락처를 정확히 입력해주세요.")
+        elif not business:
+            st.warning("사업자명을 입력해주세요.")
+        elif amount <= 0:
+            st.warning("희망 자금을 입력해주세요.")
+        else:
+            conn.execute("""
+            INSERT INTO consult_requests
+            (name, phone, business, region, industry, amount, message)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (name, phone, business, region_c, industry_c, amount, message))
 
-            st.success("DB 정리가 완료되었습니다.")
+            conn.commit()
+            st.success("✅ 상담 신청 완료!")
 
-            col1, col2, col3 = st.columns(3)
+# -------------------------------
+# 관리자 페이지
+# -------------------------------
+st.markdown("---")
+st.subheader("🧑‍💼 관리자 상담 신청 목록")
 
-            with col1:
-                st.metric("전체 데이터", len(df))
+admin_password = st.text_input("관리자 비밀번호", type="password")
 
-            with col2:
-                st.metric("정상 데이터", len(cleaned_df))
+if admin_password:
+    if check_admin_password(admin_password):
+        st.success("관리자 인증 성공")
 
-            with col3:
-                st.metric("제외 데이터", len(invalid_df))
+        try:
+            consult_df = pd.read_sql(
+                "SELECT * FROM consult_requests ORDER BY created_at DESC",
+                conn
+            )
 
-            st.markdown("---")
+            if len(consult_df) > 0:
+                st.dataframe(consult_df)
 
-            st.subheader("정상 DB")
-            st.dataframe(cleaned_df)
-
-            if not invalid_df.empty:
-                st.subheader("제외된 데이터")
-                st.dataframe(invalid_df)
-
-            # -------------------------------
-            # 엑셀 다운로드
-            # -------------------------------
-
-            if not cleaned_df.empty:
-                excel_data = to_excel(cleaned_df)
+                output = BytesIO()
+                consult_df.to_excel(output, index=False, engine="openpyxl")
+                excel_data = output.getvalue()
 
                 st.download_button(
-                    label="정리된 DB 엑셀 다운로드",
+                    label="📥 상담 신청 목록 엑셀 다운로드",
                     data=excel_data,
-                    file_name="정책자금_DB_정리본.xlsx",
+                    file_name="consult_requests.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
+            else:
+                st.info("📭 상담 신청 데이터가 없습니다.")
 
-    except Exception as e:
-        st.error("오류가 발생했습니다.")
-        st.exception(e)
-
-else:
-    st.info("엑셀 파일을 업로드하면 DB 정리를 시작할 수 있습니다.")
+        except Exception as e:
+            st.error(f"DB 오류: {e}")
+    else:
+        st.error("비밀번호가 틀렸습니다.")
