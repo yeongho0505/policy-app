@@ -193,7 +193,7 @@ with st.form("consult_form"):
 
         if not name:
             st.warning("이름을 입력해주세요.")
-        elif not is_valid_phone("콜"):
+        elif not is_valid_phone(row['콜']):
             st.warning("연락처를 정확히 입력해주세요.")
         elif not business:
             st.warning("사업자명을 입력해주세요.")
