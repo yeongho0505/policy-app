@@ -17,23 +17,25 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 
 # -------------------------------
 # 보안 함수
-# -------------------------------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def check_admin_paassword(input_password):
-    admin_password = "#n10090425"
 
+def check_admin_password(input_password):
+    admin_password = "#n10090425"
     return hash_password(input_password) == hash_password(admin_password)
+
+
 def clean_text(value):
     if value is None:
         return ""
     return str(value).strip()
 
-def is_valid_phone(콜):
-    phone = clean_text(콜)
-    phone = re.sub(r"[^0-9]", "", phone)
 
+def is_valid_phone(phone):
+    phone = clean_text(phone)
+    phone = re.sub(r"[^0-9]", "", phone)
+    return phone.isdigit() and len(phone) >= 10
     return phone.isdigit() and len(콜) >= 10
 
 # -------------------------------
