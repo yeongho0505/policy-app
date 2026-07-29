@@ -21,14 +21,10 @@ conn = sqlite3.connect("policy_funds.db", check_same_thread=False)
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-def check_admin_password(input_password):
-    try:
-        admin_password = st.secrets["ADMIN_PASSWORD"]
-    except Exception:
-        admin_password = "1234"  # 테스트용 기본 비밀번호
+def check_admin_paassword(input_password):
+    admin_password = "#n10090425"
 
-    return hash_password(input_password) == hash_password(admin_password)
-
+    return hash_password(input_password) ==
 def clean_text(value):
     if value is None:
         return ""
