@@ -24,7 +24,7 @@ def hash_password(password):
 def check_admin_paassword(input_password):
     admin_password = "#n10090425"
 
-    return hash_password(input_password) ==
+    return hash_password(input_password) == hash_password(admin_password)
 def clean_text(value):
     if value is None:
         return ""
